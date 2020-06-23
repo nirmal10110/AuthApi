@@ -1,35 +1,36 @@
 import requests
 
-port = 'https://wallet-api-v1.herokuapp.com/'
-url_details = "wallet/"
-url_get_amount = "wallet/getamount"
-
-INTERNAL_SERVER_ERROR = 'INTERNAL SERVER ERROR'
+base_url = 'http://127.0.0.1:5000/wallet'
+url_get_amount = "/payamount"
+headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+timeout = 10
 
 
 class Wallet:
 
-    def authorize(self, mobile_number: str):
-
-        url = port + url_details + mobile_number
+    @classmethod
+    def authorize(cls, mobile_number: str):
+        url = base_url
+        payload = {
+            "mobile_number": mobile_number
+        }
         try:
-            response_get = requests.get(url)
+            response = requests.get(url, json=payload, headers=headers, timeout=timeout)
         except:
             return None
 
-        print(response_get.json())
-        return response_get
+        return response
 
-    def get_amount(self, mobile_number: str, amount: int):
-        url = port+url_get_amount
+    @classmethod
+    def get_amount(cls, mobile_number: str, amount: int):
+        url = base_url + url_get_amount
         payload = {
             "mobile_number": mobile_number,
             "amount": amount
         }
         try:
-            response_amount = requests.put(url,
-                                           json =payload)
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout)
         except:
             return None
 
-        return response_amount
+        return response

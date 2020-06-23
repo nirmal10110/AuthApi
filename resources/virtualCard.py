@@ -33,7 +33,7 @@ class VirtualCard(Resource):
         :param mobile_number:
         :return:
         """
-        
+
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
@@ -56,16 +56,15 @@ class VirtualCard(Resource):
         virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
 
         if virtual_card:
-            return {"message": CARD_NOT_GENERATED}, 400
+            return {"message": CARD_GENERATED}, 400
 
         wallet_response = wallet.authorize(mobile_number)
-        print(wallet_response)
 
-        if not wallet_response:
+        if wallet_response is None:
             return {"message": INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 400:
-            return {"message": KYC_STATUS}, 400
+            return {"message": wallet_response.json()}, 401
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
@@ -104,10 +103,10 @@ class AddAmount(Resource):
 
         wallet_response = wallet.get_amount(mobile_number, payload['amount'])
 
-        if not wallet_response:
+        if wallet_response is None:
             return {'message': INTERNAL_SERVER_ERROR}, 500
 
-        if wallet_response.status_code != 200:
+        if wallet_response.status_code == 400:
             return {'message': wallet_response.json()}, 400
 
         virtual_card.amount += payload['amount']
@@ -144,10 +143,13 @@ class Payment(Resource):
         payload['senderAccountNumber'] = virtual_card.pan
         payload['localTransactionDateTime'] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
-        visa_response = visa.cash_in_push_payments_post_payload(payload)
-        print(visa_response, type(visa_response))
-        if not visa_response or visa_response.status_code != 200:
+        visa_response = visa.merchant_push_payments_post_payload(payload)
+
+        if visa_response is None:
             return {"message": INTERNAL_SERVER_ERROR}, 500
+
+        if visa_response.status_code != 200:
+            return {"message": visa_response.json()}, 500
 
         virtual_card.amount -= float(payload['amount'])
         virtual_card.last_transaction_time = datetime.fromtimestamp(time.time()).isoformat()
