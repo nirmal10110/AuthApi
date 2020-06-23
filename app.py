@@ -8,6 +8,7 @@ from db import db
 from blacklist import BLACKLIST
 from resources.user import User, UserRegister, UserLogin, UserLogout, TokenRefresh
 from resources.virtualCard import VirtualCard, AddAmount, Payment
+from resources.confirmation import Confirmation, ConfirmationByUser
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
@@ -20,6 +21,10 @@ app.config["JWT_BLACKLIST_TOKEN_CHECK"] = [
 ]  # allowing blacklisting for access and refresh tokens
 app.secret_key = "visa"
 api = Api(app)
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 
 @app.errorhandler(ValidationError)
@@ -43,7 +48,10 @@ api.add_resource(TokenRefresh, "/refresh")
 api.add_resource(VirtualCard, "/virtual_card/<string:mobile_number>")
 api.add_resource(AddAmount, "/virtual_card/add_amount/<string:mobile_number>")
 api.add_resource(Payment, "/virtual_card/payment/<string:mobile_number>")
+api.add_resource(Confirmation, "/user_confirm/<string:confirmation_id>")
+api.add_resource(ConfirmationByUser, "/confirmation/user/<int:user_id>")
 
 if __name__ == "__main__":
+    db.init_app(app)
     ma.init_app(app)
     app.run(port=5001,debug=True)
