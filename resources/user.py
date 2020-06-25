@@ -1,5 +1,8 @@
 from flask import request
 from flask_restful import Resource
+
+from models.user import UserModel
+from schemas.user import UserSchema
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -8,14 +11,7 @@ from flask_jwt_extended import (
     jwt_required,
     get_raw_jwt
 )
-
-import traceback
-from models.user import UserModel
-from schemas.user import UserSchema
-from models.confirmation import ConfirmationModel
 from blacklist import BLACKLIST
-from libs.mailgun import MailGunException
-from libs.strings import gettext
 
 user_schema = UserSchema()
 
@@ -36,22 +32,9 @@ class UserRegister(Resource):
         if UserModel.find_user_by_email(user.email):
             return {"msg": USER_ALREADY_EXISTS.format(user.email)}, 400
 
-        if UserModel.find_user_by_mobile_number(user.mobile_number):
-            return {"msg": gettext("mobile_number_already_registered").format(user.mobile_number)}, 400
+        user.save_to_db()
+        return {"msg": USER_CREATED.format(user.email)}, 201
 
-        try:
-            user.save_to_db()
-            confirmation = ConfirmationModel(user.id)
-            confirmation.save_to_db()
-            user.send_confirmation_email()
-            return {"msg": USER_CREATED.format(user.email)}, 201
-        except MailGunException as e:
-            user.delete_from_db()  # rollback
-            return {"message": str(e)}, 500
-        except:  # failed to save user to db
-            traceback.print_exc()
-            user.delete_from_db()  # rollback
-            return {"message": gettext("user_error_creating")}, 500
 
 class User(Resource):
     @classmethod
@@ -79,23 +62,14 @@ class UserLogin(Resource):
         user_data = user_schema.load(request.get_json(), partial=("full_name", "mobile_number"))
 
         user = UserModel.find_user_by_email(email=user_data.email)
-
         if not user:
             return {"msg": USER_NOT_FOUND.format(user_data.email)}, 401
         elif user.password != user_data.password:
             return {"msg": INVALID_PASSWORD}, 401
 
-        confirmation = user.most_recent_confirmation
-        if confirmation and confirmation.confirmed:
-            access_token = create_access_token(identity=user.id, fresh=True)
-            refresh_token = create_refresh_token(identity=user.id)
-            return (
-                {"access_token": access_token, "refresh_token": refresh_token},
-                200,
-            )
-        return {"message": gettext("user_not_confirmed").format(user.email)}, 400
-
-
+        access_token = create_access_token(identity=user.id, fresh=True)
+        refresh_token = create_refresh_token(identity=user.id)
+        return {"access_token": access_token, "refresh_token": refresh_token}, 200
 
 
 class UserLogout(Resource):
