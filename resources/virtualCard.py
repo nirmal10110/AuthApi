@@ -51,13 +51,13 @@ class VirtualCard(Resource):
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
-            return {"error": INTERNAL_SERVER_ERROR,"message":CARD_GENERATED}, 500
+            return {"error": INTERNAL_SERVER_ERROR, "message": CARD_GENERATED}, 500
 
         if wallet_response.status_code == 404:
             return {"message": wallet_response.json()}, 401
 
         wallet_response = Decryption.decrypt(wallet_response.json())
-        
+
         return {"message": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
 
     @classmethod
@@ -156,7 +156,8 @@ class Payment(Resource):
         mobile_number = payload['mobile_number']
         wallet_name = payload['wallet_name']
         del (payload['mobile_number'])
-        del(payload['wallet_name'])
+        del (payload['wallet_name'])
+
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
@@ -174,15 +175,19 @@ class Payment(Resource):
         if wallet_response.status_code == 404:
             return {'message': wallet_response.json()}, 400
 
+        systems_trace_audit_number = str(uuid.uuid4().int >> 32)[0:6]
+        last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         payload['senderAccountNumber'] = pan
-        payload['localTransactionDateTime'] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        payload['systemsTraceAuditNumber'] = systems_trace_audit_number
+        payload['retrievalReferenceNumber'] = str(datetime.utcnow().strftime("%y%d%H")) + systems_trace_audit_number
+        payload['localTransactionDateTime'] = last_transaction_time
 
         visa_response = visa.merchant_push_payments_post_payload(payload)
 
         if visa_response is None:
             wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
             return {"message": AMOUNT_ADDED_BACK, "error": INTERNAL_SERVER_ERROR}, 500
-        
+
         visa_response_status = visa_response.status_code
         visa_response = visa_response.json()
 
@@ -190,16 +195,16 @@ class Payment(Resource):
             wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
             return {"error": visa_response, "message": AMOUNT_ADDED_BACK}, 500
 
-        last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         virtual_card.last_transaction_time = last_transaction_time
         history = HistoryModel(payload['amount'], last_transaction_time, mobile_number,
-                               visa_response['transactionIdentifier'],payload["cardAcceptor"]["name"],wallet_name)
+                               systems_trace_audit_number, payload["cardAcceptor"]["name"], wallet_name,
+                               "Success")
         virtual_card.count += 1
 
         try:
             virtual_card.save_to_db()
             history.save_to_db()
         except:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"error": INTERNAL_SERVER_ERROR, "messge": visa_response}, 500
 
         return {'message': visa_response}, 200
