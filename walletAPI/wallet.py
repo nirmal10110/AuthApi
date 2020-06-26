@@ -1,5 +1,6 @@
 import json
 import requests
+from libs.encryption import Encryption
 
 port = 'https://wallet-api-v1.herokuapp.com'
 url_details = "/wallet"
@@ -16,7 +17,7 @@ class Wallet:
         payload = {
             "mobile_number": mobile_number
         }
-
+        # payload = json.dumps(Encryption.encrypt(payload))
         url = port + url_details 
 
         try:
@@ -31,7 +32,7 @@ class Wallet:
             "mobile_number": mobile_number,
             "amount": amount
         }
-
+        # payload = json.dumps(Encryption.encrypt(payload))
         try:
             response_amount = requests.put(url, json=payload, headers=headers, timeout=timeout)
         except:
@@ -45,6 +46,7 @@ class Wallet:
             "mobile_number": mobile_number,
             "amount": amount
         }
+        # payload = json.dumps(Encryption.encrypt(payload))
         try:
             response_amount = requests.put(url, json=payload, headers=headers, timeout=timeout)
         except:

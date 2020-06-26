@@ -6,7 +6,6 @@ from datetime import datetime
 from models.virtualCard import VirtualCardModel
 from models.history import HistoryModel
 from libs.security import AESCipher
-from libs.decryption import Decryption
 from walletAPI.wallet import Wallet
 
 CARD_GENERATED = "CARD IS ALREADY GENERATED"
@@ -94,7 +93,7 @@ class VisaNet(Resource):
             return {'message': INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
-            return {'message': wallet_response.json()}, 400
+            return Decryption.decrypt(wallet_response.json()), 400
 
         last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -148,7 +147,7 @@ class Confirmation(Resource):
 
                 return {"message": "Refunded"}, 200
 
-            return {"message": wallet_response.json()}, 500
+            return Decryption.decrypt(wallet_response.json()), 500
 
         history.status = "Success"
         history.transaction_id = payload['transaction_id']

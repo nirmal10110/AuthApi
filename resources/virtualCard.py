@@ -51,12 +51,10 @@ class VirtualCard(Resource):
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
-            return {"error": INTERNAL_SERVER_ERROR, "message": CARD_GENERATED}, 500
+            return {"error": INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
             return {"message": wallet_response.json()}, 401
-
-        wallet_response = Decryption.decrypt(wallet_response.json())
 
         return {"message": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
 
