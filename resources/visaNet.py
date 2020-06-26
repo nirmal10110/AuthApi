@@ -6,6 +6,7 @@ from datetime import datetime
 from models.virtualCard import VirtualCardModel
 from models.history import HistoryModel
 from libs.security import AESCipher
+from libs.decryption import Decryption
 from walletAPI.wallet import Wallet
 
 CARD_GENERATED = "CARD IS ALREADY GENERATED"
