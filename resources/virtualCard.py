@@ -1,13 +1,13 @@
 import traceback
-import json
 from flask_restful import Resource
 from flask import request
 from flask_jwt_extended import jwt_required
 from models.virtualCard import VirtualCardModel
 from models.history import HistoryModel
-from libs.decryption import Decryption
 from visa.visaAPI import MVisa
 from walletAPI.wallet import Wallet
+from libs.security import AESCipher
+from libs.decryption import Decryption
 from datetime import datetime
 import time
 from pan import PAN
@@ -23,10 +23,10 @@ AMOUNT_ADDED = 'MONEY ADDED'
 AMOUNT_ADDED_BACK = "AMOUNT ADDED BACK TO WALLET"
 INSUFFICIENT_FUNDS = 'INSUFFICIENT FUNDS'
 ACCOUNT_NOT_YET_SYNCED = "ACCOUNT NOT YET SYNCED"
-AMOUNT_HIGH = "AMOUNT TOO HIGH CAN'T PROCEED"
 
 wallet = Wallet()
 visa = MVisa()
+cipher = AESCipher('mysecretpassword')
 
 
 class VirtualCard(Resource):
@@ -51,13 +51,14 @@ class VirtualCard(Resource):
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"error": INTERNAL_SERVER_ERROR,"message":CARD_GENERATED}, 500
 
         if wallet_response.status_code == 404:
             return {"message": wallet_response.json()}, 401
+
+        wallet_response = Decryption.decrypt(wallet_response.json())
         
-        wallet_response = Decryption.decrypt_response(wallet_response.json())
-        return {"message": CARD_GENERATED, "wallet_amount": float(wallet_response['amount'])}, 200
+        return {"message": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
 
     @classmethod
     @jwt_required
@@ -86,14 +87,16 @@ class VirtualCard(Resource):
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
+        pan = cipher.encrypt(pan)
 
         while pan in PAN:
             pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
+            pan = cipher.encrypt(pan)
 
         card_generated_time = datetime.fromtimestamp(time.time()).isoformat()
         virtual_card = VirtualCardModel(pan, card_generated_time, mobile_number)
 
-        wallet_response = Decryption.decrypt_response(wallet_response.json())
+        wallet_response = Decryption.decrypt(wallet_response.json())
         try:
             virtual_card.save_to_db()
             PAN.add(pan)
@@ -101,7 +104,7 @@ class VirtualCard(Resource):
             traceback.print_exc()
             return {"message": FAILED_TO_CREATE}, 500
 
-        return {"message": PAN_CREATED, "wallet_amount": float(wallet_response['amount'])}, 201
+        return {"message": PAN_CREATED, "wallet_amount": wallet_response['amount']}, 201
 
 
 # class AddAmount(Resource):
@@ -150,15 +153,10 @@ class Payment(Resource):
         """
 
         payload = request.get_json()
-        mobile_number = payload["mobile_number"]
-        wallet_name = payload["wallet_name"]
-        del (payload["mobile_number"])
-        del(payload["wallet_name"])
-
-        if float(payload['amount'])>5000:
-            return {"message":AMOUNT_HIGH},401
-
-
+        mobile_number = payload['mobile_number']
+        wallet_name = payload['wallet_name']
+        del (payload['mobile_number'])
+        del(payload['wallet_name'])
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
@@ -168,33 +166,34 @@ class Payment(Resource):
             return {'message': CARD_NOT_GENERATED}, 400
 
         wallet_response = wallet.get_amount(mobile_number, float(payload['amount']))
+        pan = cipher.decrypt(virtual_card.pan)
 
         if wallet_response is None:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {'message': INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
-            return {"message": wallet_response.json()}, 400
-        
-        payload["senderAccountNumber"] = virtual_card.pan
-        payload["localTransactionDateTime"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            return {'message': wallet_response.json()}, 400
+
+        payload['senderAccountNumber'] = pan
+        payload['localTransactionDateTime'] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
         visa_response = visa.merchant_push_payments_post_payload(payload)
 
         if visa_response is None:
-            wallet_response = wallet.send_amount(mobile_number, float(payload["amount"]))
+            wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
             return {"message": AMOUNT_ADDED_BACK, "error": INTERNAL_SERVER_ERROR}, 500
-
+        
         visa_response_status = visa_response.status_code
         visa_response = visa_response.json()
 
         if visa_response_status != 200:
-            wallet_response = wallet.send_amount(mobile_number, float(payload["amount"]))
+            wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
             return {"error": visa_response, "message": AMOUNT_ADDED_BACK}, 500
 
         last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         virtual_card.last_transaction_time = last_transaction_time
-        history = HistoryModel(payload["amount"], last_transaction_time, mobile_number,
-                               visa_response["transactionIdentifier"],payload["cardAcceptor"]["name"],wallet_name)
+        history = HistoryModel(payload['amount'], last_transaction_time, mobile_number,
+                               visa_response['transactionIdentifier'],payload["cardAcceptor"]["name"],wallet_name)
         virtual_card.count += 1
 
         try:

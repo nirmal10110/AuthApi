@@ -1,4 +1,5 @@
 from db import db
+from libs.OTP import OTP
 
 
 class UserModel(db.Model):
@@ -8,6 +9,7 @@ class UserModel(db.Model):
     email = db.Column(db.String(40), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     mobile_number = db.Column(db.String(20), unique=True, nullable=False)
+    activated = db.Column(db.Boolean, default=False)
     # pan details relationship
 
     @classmethod
@@ -21,6 +23,9 @@ class UserModel(db.Model):
     @classmethod
     def find_user_by_id(cls, user_id):
         return cls.query.filter_by(id=user_id).first()
+
+    def send_otp(self, text):
+        return OTP.send_otp("+91" + self.mobile_number, text)
 
     def save_to_db(self):
         db.session.add(self)

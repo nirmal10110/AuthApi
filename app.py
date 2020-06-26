@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from ma import ma
 from db import db
 from blacklist import BLACKLIST
-from resources.user import User, UserRegister, UserLogin, UserLogout, TokenRefresh
+from resources.user import User, UserRegister, UserLogin, UserLogout, TokenRefresh, UserConfirm
 from resources.virtualCard import VirtualCard, Payment
 from resources.history import History
 
@@ -42,6 +42,7 @@ api.add_resource(UserLogin, "/login")
 api.add_resource(UserLogout, "/logout")
 api.add_resource(User, "/user/<string:mobile_number>")
 api.add_resource(TokenRefresh, "/refresh")
+api.add_resource(UserConfirm, "/otp")
 api.add_resource(VirtualCard, "/virtual_card")
 # api.add_resource(AddAmount, "/virtual_card/add_amount/<string:mobile_number>")
 api.add_resource(Payment, "/virtual_card/payment")
@@ -49,4 +50,4 @@ api.add_resource(History, "/payment/history")
 
 if __name__ == "__main__":
     ma.init_app(app)
-    app.run(port=5001,debug=True)
+    app.run(port=5001, debug=True)

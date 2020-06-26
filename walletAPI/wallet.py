@@ -1,6 +1,7 @@
+import json
 import requests
 
-port = 'https://wallet-api-v1.herokuapp.com/'
+port = 'https://wallet-api-v1.herokuapp.com'
 url_details = "/wallet"
 url_get_amount = "/wallet/amount"
 url_add_amount = "/wallet/add/amount"
