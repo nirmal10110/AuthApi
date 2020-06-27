@@ -2,10 +2,12 @@ import json
 import requests
 from libs.encryption import Encryption
 
+# port = 'http://127.0.0.1:5000'
 port = 'https://wallet-api-v1.herokuapp.com'
-url_details = "/wallet"
-url_get_amount = "/wallet/amount"
-url_add_amount = "/wallet/add/amount"
+
+wallet_url = "/wallet"
+wallet_url_amount_pay = "/wallet/amount/pay"
+wallet_url_amount_receive = "/wallet/amount/receive"
 
 headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 timeout = 10
@@ -18,16 +20,16 @@ class Wallet:
             "mobile_number": mobile_number
         }
         # payload = json.dumps(Encryption.encrypt(payload))
-        url = port + url_details 
+        url = port + wallet_url
 
         try:
             response_get = requests.get(url, json=payload, headers=headers, timeout=timeout)
         except:
             return None
         return response_get
-        
+
     def get_amount(self, mobile_number: str, amount: float):
-        url = port+url_get_amount
+        url = port + wallet_url_amount_pay
         payload = {
             "mobile_number": mobile_number,
             "amount": amount
@@ -37,11 +39,11 @@ class Wallet:
             response_amount = requests.put(url, json=payload, headers=headers, timeout=timeout)
         except:
             return None
-        
+
         return response_amount
-    
+
     def send_amount(self, mobile_number: str, amount: float):
-        url = port+url_add_amount
+        url = port + wallet_url_amount_receive
         payload = {
             "mobile_number": mobile_number,
             "amount": amount

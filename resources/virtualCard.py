@@ -20,9 +20,10 @@ FAILED_TO_CREATE = 'FAILED TO CREATE'
 KYC_STATUS = 'WALLET UNAUTHORIZED CHECK KYC STATUS'
 PAN_CREATED = 'PAN CREATED SUCCESSFULLY,HURRAY!!'
 AMOUNT_ADDED = 'MONEY ADDED'
-AMOUNT_ADDED_BACK = "AMOUNT ADDED BACK TO WALLET"
+ROLL_BACK = "INTERNAL SERVER ERROR, AMOUNT ROLLBACK"
 INSUFFICIENT_FUNDS = 'INSUFFICIENT FUNDS'
 ACCOUNT_NOT_YET_SYNCED = "ACCOUNT NOT YET SYNCED"
+DATABASE_ERROR = "ERROR IN SAVING TO DATABASE, VISA RESPONSE OK"
 
 wallet = Wallet()
 visa = MVisa()
@@ -43,20 +44,21 @@ class VirtualCard(Resource):
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if not virtual_card:
-            return {"message": ACCOUNT_NOT_YET_SYNCED}, 400
+            return {"msg": ACCOUNT_NOT_YET_SYNCED}, 400
 
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
-            return {"error": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
-            return {"message": wallet_response.json()}, 401
+            return Decryption.decrypt(wallet_response.json()), 401
 
-        return {"message": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
+        wallet_response = Decryption.decrypt(wallet_response.json())
+        return {"msg": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
 
     @classmethod
     @jwt_required
@@ -70,18 +72,18 @@ class VirtualCard(Resource):
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if virtual_card:
-            return {"message": CARD_GENERATED}, 400
+            return {"msg": CARD_GENERATED}, 400
 
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
-            return {"message": wallet_response.json()}, 401
+            return Decryption.decrypt(wallet_response.json()), 401
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
@@ -100,9 +102,9 @@ class VirtualCard(Resource):
             PAN.add(pan)
         except:
             traceback.print_exc()
-            return {"message": FAILED_TO_CREATE}, 500
+            return {"msg": FAILED_TO_CREATE}, 500
 
-        return {"message": PAN_CREATED, "wallet_amount": wallet_response['amount']}, 201
+        return {"msg": PAN_CREATED, "wallet_amount": wallet_response['amount']}, 201
 
 
 # class AddAmount(Resource):
@@ -151,47 +153,47 @@ class Payment(Resource):
         """
 
         payload = request.get_json()
-        mobile_number = payload['mobile_number']
-        wallet_name = payload['wallet_name']
-        del (payload['mobile_number'])
-        del (payload['wallet_name'])
+        mobile_number = payload["mobile_number"]
+        wallet_name = payload["wallet_name"]
+        del (payload["mobile_number"])
+        del (payload["wallet_name"])
 
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
-            return {"message": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if not virtual_card:
-            return {'message': CARD_NOT_GENERATED}, 400
+            return {'msg': CARD_NOT_GENERATED}, 400
 
         wallet_response = wallet.get_amount(mobile_number, float(payload['amount']))
         pan = cipher.decrypt(virtual_card.pan)
 
         if wallet_response is None:
-            return {'message': INTERNAL_SERVER_ERROR}, 500
+            return {'msg': INTERNAL_SERVER_ERROR}, 500
 
         if wallet_response.status_code == 404:
-            return {'message': wallet_response.json()}, 400
+            return Decryption.decrypt(wallet_response.json()), 401
 
         systems_trace_audit_number = str(uuid.uuid4().int >> 32)[0:6]
         last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         payload['senderAccountNumber'] = pan
         payload['systemsTraceAuditNumber'] = systems_trace_audit_number
-        payload['retrievalReferenceNumber'] = str(datetime.utcnow().strftime("%y%d%H")) + systems_trace_audit_number
+        payload['retrievalReferenceNumber'] = str(datetime.utcnow().strftime("%y%d%H")) + \
+                                              systems_trace_audit_number
         payload['localTransactionDateTime'] = last_transaction_time
 
-        visa_response = visa.merchant_push_payments_post_payload(payload)
+        visa_response = MVisa.merchant_push_payments_post_payload(payload)
 
         if visa_response is None:
             wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
-            return {"message": AMOUNT_ADDED_BACK, "error": INTERNAL_SERVER_ERROR}, 500
+            return {"msg": ROLL_BACK}, 500
 
         visa_response_status = visa_response.status_code
         visa_response = visa_response.json()
-
         if visa_response_status != 200:
             wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
-            return {"error": visa_response, "message": AMOUNT_ADDED_BACK}, 500
+            return {"msg": ROLL_BACK}, 500
 
         virtual_card.last_transaction_time = last_transaction_time
         history = HistoryModel(payload['amount'], last_transaction_time, mobile_number,
@@ -203,6 +205,6 @@ class Payment(Resource):
             virtual_card.save_to_db()
             history.save_to_db()
         except:
-            return {"error": INTERNAL_SERVER_ERROR, "messge": visa_response}, 500
+            return {"msg": DATABASE_ERROR}, 500
 
-        return {'message': visa_response}, 200
+        return {'msg': visa_response}, 200

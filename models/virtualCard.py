@@ -11,7 +11,7 @@ class VirtualCardModel(db.Model):
     count = db.Column(db.Integer, default=0)
 
     mobile_number = db.Column(db.String, db.ForeignKey('users.mobile_number'))
-    users = db.relationship('UserModel')
+    user = db.relationship('UserModel')
 
     def __init__(self, pan: str, card_generation_time, mobile_number: str):
         self.pan = pan
@@ -27,4 +27,8 @@ class VirtualCardModel(db.Model):
 
     def save_to_db(self) -> None:
         db.session.add(self)
+        db.session.commit()
+        
+    def delete_from_db(self):
+        db.session.delete(self)
         db.session.commit()

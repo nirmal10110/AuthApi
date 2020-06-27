@@ -18,13 +18,13 @@ rsa = "*"
 pycryptodome = "*"
 pycryptodomex = "*"
 twilio = "*"
-cryptography = "==2.6.1"
+cryptography = "*"
 urllib3 = "==1.25.9"
 python-dotenv = "*"
 Flask-Cors = "*"
 PyMySQL = "*"
 gunicorn = "*"
-uwsgi = "*"
+
 
 [requires]
 python_version = "3.7"

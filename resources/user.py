@@ -1,9 +1,10 @@
 import traceback
-
+from marshmallow import INCLUDE, EXCLUDE
 from flask import request
 from flask_restful import Resource
 
 from models.user import UserModel
+from models.virtualCard import VirtualCardModel
 from schemas.user import UserSchema
 from flask_jwt_extended import (
     create_access_token,
@@ -17,7 +18,7 @@ from blacklist import BLACKLIST
 from MLE.RSA import Rsa
 from libs.security import AESCipher
 
-user_schema = UserSchema()
+user_schema = UserSchema(unknown=EXCLUDE)
 cipher = AESCipher("mysecretpassword")
 rsa = Rsa()
 
@@ -41,7 +42,7 @@ class UserRegister(Resource):
 
         if UserModel.find_user_by_email(user.email):
             return {"msg": USER_ALREADY_EXISTS.format(user.email)}, 400
-        
+
         # user.password = cipher.encrypt(user.password)
         user.save_to_db()
         return {"msg": USER_CREATED.format(user.email)}, 201
@@ -62,7 +63,9 @@ class User(Resource):
         user = UserModel.find_user_by_mobile_number(mobile_number=mobile_number)
         if not user:
             return {"msg": USER_NOT_FOUND.format(mobile_number)}, 404
-
+        
+        virtualCard = VirtualCardModel.find_by_mobile_number(mobile_number)
+        virtualCard.delete_from_db()
         user.delete_from_db()
         return {"msg": USER_DELETED.format(user.email)}, 200
 
@@ -74,9 +77,8 @@ class UserLogin(Resource):
         # json_data["email"] = rsa.decrypt(json_data["email"])
         # json_data["password"] = rsa.decrypt(json_data["password"])
         user_data = user_schema.load(json_data, partial=("full_name", "mobile_number"))
-        print(user_data)
         user = UserModel.find_user_by_email(email=user_data.email)
-        
+
         if not user:
             return {"msg": USER_NOT_FOUND.format(user_data.email)}, 401
 
@@ -114,11 +116,10 @@ class UserConfirm(Resource):
         json_data = request.get_json()
         # json_data["mobile_number"] = rsa.decrypt(json_data["mobile_number"])
         otp = json_data["OTP"]  # rsa.decrypt(json_data["OTP"])
-        user_data = user_schema.load({"mobile_number": json_data["mobile_number"]},
-                                     partial=("full_name", "email", "password"))
-        user = UserModel.find_user_by_mobile_number(mobile_number=user_data.mobile_number)
+        user_data = user_schema.load(json_data, partial=("full_name", "email", "password"))
+        user = UserModel.find_user_by_mobile_number(mobile_number=json_data["mobile_number"])
         if not user:
-            return {"msg": USER_NOT_FOUND}, 404
+            return {"msg": USER_NOT_FOUND.format(json_data["mobile_number"])}, 404
         try:
             message = user.send_otp(otp)
         except:
@@ -131,8 +132,7 @@ class UserConfirm(Resource):
     def put(cls):
         json_data = request.get_json()
         # json_data["mobile_number"] = rsa.decrypt(json_data["mobile_number"])
-        user_data = user_schema.load({"mobile_number": json_data["mobile_number"]}
-                                     , partial=("full_name", "email", "password"))
+        user_data = user_schema.load(json_data, partial=("full_name", "email", "password"))
         user = UserModel.find_user_by_mobile_number(mobile_number=user_data.mobile_number)
         if not user:
             return {"msg": USER_NOT_FOUND}, 404
