@@ -14,7 +14,7 @@ class History(Resource):
     @jwt_required
     def get(cls):
         _id = get_jwt_identity()
-        user = UserModel.find_by_id(_id)
+        user = UserModel.find_user_by_id(_id)
 
         try:
             history_details = HistoryModel.find_by_mobile_number(user.mobile_number)

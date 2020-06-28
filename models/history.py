@@ -21,7 +21,9 @@ class HistoryModel(db.Model):
         self.merchant_name = merchant_name
         self.wallet_name = wallet_name
         self.status = status
-
+    
+    
+    
     @classmethod
     def find_by_mobile_number(cls, mobile_number: str):
         return cls.query.filter_by(mobile_number=mobile_number).all()
