@@ -71,14 +71,6 @@ class VirtualCard(Resource):
         """
         payload = request.get_json()
         mobile_number = payload['mobile_number']
-        try:
-            virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
-        except:
-            return {"msg": INTERNAL_SERVER_ERROR}, 500
-
-        if virtual_card:
-            return {"msg": CARD_GENERATED}, 400
-
         wallet_response = wallet.authorize(mobile_number)
 
         if wallet_response is None:
@@ -86,6 +78,14 @@ class VirtualCard(Resource):
 
         if wallet_response.status_code == 404:
             return Decryption.decrypt(wallet_response.json()), 401
+
+        try:
+            virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
+        except:
+            return {"msg": INTERNAL_SERVER_ERROR}, 500
+
+        if virtual_card:
+            return {"msg": CARD_GENERATED}, 400
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
