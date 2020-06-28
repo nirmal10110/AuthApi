@@ -7,7 +7,7 @@ from models.virtualCard import VirtualCardModel
 from models.history import HistoryModel
 from libs.security import AESCipher
 from walletAPI.wallet import Wallet
-from models.userModel import UserModel
+from models.user import UserModel
 
 CARD_GENERATED = "CARD IS ALREADY GENERATED"
 CARD_NOT_GENERATED = "CARD NOT GENERATED"
