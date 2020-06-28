@@ -30,7 +30,7 @@ class VisaNet(Resource):
     @jwt_required
     def get(cls):
         _id =get_jwt_identity()
-        user =UserModel.find_by_id(_id)
+        user =UserModel.find_user_by_id(_id)
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(user.mobile_number)
         except:

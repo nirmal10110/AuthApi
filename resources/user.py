@@ -52,10 +52,10 @@ class User(Resource):
     @classmethod
     @jwt_required
     def get(cls):  # get using email (can be changed per use case)
-        email = request.get_json()["email"]
-        user = UserModel.find_user_by_email(email=email)
+        _id = get_jwt_identity()
+        user = UserModel.find_user_by_id(_id)
         if not user:
-            return {"msg": USER_NOT_FOUND.format(email)}, 404
+            return {"msg": USER_NOT_FOUND.format(user.email)}, 404
         return user_schema.dump(user), 200
 
     # just for testing

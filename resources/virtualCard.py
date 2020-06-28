@@ -1,8 +1,9 @@
 import traceback
 from flask_restful import Resource
 from flask import request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.virtualCard import VirtualCardModel
+from models.user import UserModel
 from models.history import HistoryModel
 from visa.visaAPI import MVisa
 from walletAPI.wallet import Wallet
@@ -39,8 +40,9 @@ class VirtualCard(Resource):
         Accessing already generated card.
         :return:
         """
-        payload = request.get_json()
-        mobile_number = payload['mobile_number']
+        _id = get_jwt_identity()
+        user = UserModel.find_user_by_id(_id)
+        mobile_number = user.mobile_number
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(mobile_number)
         except:
