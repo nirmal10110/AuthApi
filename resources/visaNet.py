@@ -48,8 +48,7 @@ class VisaNet(Resource):
         return {"pan": pan}, 200
 
     @classmethod
-    @jwt_required
-    def put(cls):
+    def post(cls):
         """
         payload = {
         "mobile_number":"*******",
@@ -118,7 +117,7 @@ class Confirmation(Resource):
         "mobile_number":"*******",
         "pan":"**********",
         "systemsTraceAuditNumber":"******",
-        "code":"*****"  
+        "code":int
         }
 
         """

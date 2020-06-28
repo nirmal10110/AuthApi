@@ -58,7 +58,7 @@ class VirtualCard(Resource):
             return Decryption.decrypt(wallet_response.json()), 401
 
         wallet_response = Decryption.decrypt(wallet_response.json())
-        return {"msg": CARD_GENERATED, "wallet_amount": wallet_response['amount']}, 200
+        return {"pan": virtual_card.pan, "wallet_amount": wallet_response['amount']}, 200
 
     @classmethod
     @jwt_required
