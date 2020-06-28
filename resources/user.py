@@ -51,21 +51,26 @@ class UserRegister(Resource):
 class User(Resource):
     @classmethod
     @jwt_required
-    def get(cls, mobile_number):  # get using phone number (can be changed per use case)
-        user = UserModel.find_user_by_mobile_number(mobile_number=mobile_number)
+    def get(cls):  # get using email (can be changed per use case)
+        user_data = user_schema.load(request.get_json(), partial=("full_name", "mobile_number", "password"))
+        user = UserModel.find_user_by_email(email=user_data.email)
         if not user:
-            return {"msg": USER_NOT_FOUND.format(mobile_number)}, 404
+            return {"msg": USER_NOT_FOUND.format(user_data.email)}, 404
         return user_schema.dump(user), 200
 
     # just for testing
     @classmethod
-    def delete(cls, mobile_number):
-        user = UserModel.find_user_by_mobile_number(mobile_number=mobile_number)
+    def delete(cls, ):
+        user_data = user_schema.load(request.get_json(), partial=("full_name", "mobile_number", "password"))
+        user = UserModel.find_user_by_email(email=user_data.email)
         if not user:
-            return {"msg": USER_NOT_FOUND.format(mobile_number)}, 404
-        
-        virtualCard = VirtualCardModel.find_by_mobile_number(mobile_number)
-        virtualCard.delete_from_db()
+            return {"msg": USER_NOT_FOUND.format(user_data.email)}, 404
+
+        virtual_card = VirtualCardModel.find_by_mobile_number(user.mobile_number)
+
+        if virtual_card:
+            virtual_card.delete_from_db()
+
         user.delete_from_db()
         return {"msg": USER_DELETED.format(user.email)}, 200
 
