@@ -23,6 +23,9 @@ app.config["JWT_BLACKLIST_TOKEN_CHECK"] = [
 app.secret_key = "visa"
 api = Api(app)
 
+# @app.before_first_request
+# def create_tables():
+#     db.create_all()
 
 @app.errorhandler(ValidationError)
 def handle_marshmallow_validation(err):
@@ -51,5 +54,6 @@ api.add_resource(VisaNet, "/visa_net/payment")
 api.add_resource(Confirmation, "/visa_net/confirm/payment")
 
 if __name__ == "__main__":
+    # db.init_app(app)
     ma.init_app(app)
     app.run(port=5001, debug=True)

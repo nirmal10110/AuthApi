@@ -52,19 +52,19 @@ class User(Resource):
     @classmethod
     @jwt_required
     def get(cls):  # get using email (can be changed per use case)
-        user_data = user_schema.load(request.get_json(), partial=("full_name", "mobile_number", "password"))
-        user = UserModel.find_user_by_email(email=user_data.email)
+        email = request.get_json()["email"]
+        user = UserModel.find_user_by_email(email=email)
         if not user:
-            return {"msg": USER_NOT_FOUND.format(user_data.email)}, 404
+            return {"msg": USER_NOT_FOUND.format(email)}, 404
         return user_schema.dump(user), 200
 
     # just for testing
     @classmethod
-    def delete(cls, ):
-        user_data = user_schema.load(request.get_json(), partial=("full_name", "mobile_number", "password"))
-        user = UserModel.find_user_by_email(email=user_data.email)
+    def delete(cls):
+        email = request.get_json()["email"]
+        user = UserModel.find_user_by_email(email=email)
         if not user:
-            return {"msg": USER_NOT_FOUND.format(user_data.email)}, 404
+            return {"msg": USER_NOT_FOUND.format(email)}, 404
 
         virtual_card = VirtualCardModel.find_by_mobile_number(user.mobile_number)
 
