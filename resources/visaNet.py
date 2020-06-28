@@ -1,12 +1,13 @@
 from flask import request
 from flask_restful import Resource
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 
 from models.virtualCard import VirtualCardModel
 from models.history import HistoryModel
 from libs.security import AESCipher
 from walletAPI.wallet import Wallet
+from models.userModel import UserModel
 
 CARD_GENERATED = "CARD IS ALREADY GENERATED"
 CARD_NOT_GENERATED = "CARD NOT GENERATED"
@@ -28,15 +29,10 @@ class VisaNet(Resource):
     @classmethod
     @jwt_required
     def get(cls):
-        """
-        payload = {
-        "mobile_number":"*******",
-        }
-        """
-        payload = request.get_json()
-
+        _id =get_jwt_identity()
+        user =UserModel.find_by_id(_id)
         try:
-            virtual_card = VirtualCardModel.find_by_mobile_number(payload['mobile_number'])
+            virtual_card = VirtualCardModel.find_by_mobile_number(user.mobile_number)
         except:
             return {"message": INTERNAL_SERVER_ERROR}, 500
 
