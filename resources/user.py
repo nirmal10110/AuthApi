@@ -94,7 +94,7 @@ class UserLogin(Resource):
             return {"msg": USER_NOT_CONFIRMED.format(user.mobile_number)}, 400
         access_token = create_access_token(identity=user.id, fresh=True)
         refresh_token = create_refresh_token(identity=user.id)
-        return {"access_token": access_token, "refresh_token": refresh_token}, 200
+        return {"access_token": access_token, "refresh_token": refresh_token, "user": user_schema.dump(user)}, 200
 
 
 class UserLogout(Resource):

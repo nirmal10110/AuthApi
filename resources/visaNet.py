@@ -55,7 +55,7 @@ class VisaNet(Resource):
         "amount":"**",
         "wallet_name":"***",
         "merchant_name":"****",
-        "systemsTraceAuditNumber":"*****",
+        "systemsTraceAuditNumber":"*****"
         }
 
         """
@@ -97,7 +97,7 @@ class VisaNet(Resource):
         last_transaction_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
         history = HistoryModel(payload['amount'], last_transaction_time, payload["mobile_number"],
-                               payload["transaction_id"], payload["merchant_name"], payload['wallet_name'],
+                               payload["systemsTraceAuditNumber"], payload["merchant_name"], payload['wallet_name'],
                                "Pending")
 
         try:
