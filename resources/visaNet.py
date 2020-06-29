@@ -65,6 +65,7 @@ class VisaNet(Resource):
 
         if history:
             for hist in history:
+                print(hist.amount, hist.wallet_name)
                 hist.status = "Refunded"
                 wallet_response = wallet.send_amount(payload['mobile_number'], hist.amount)
 
@@ -145,7 +146,7 @@ class Confirmation(Resource):
             return Decryption.decrypt(wallet_response.json()), 500
 
         history.status = "Success"
-        history.transaction_id = payload['transaction_id']
+        # history.transaction_id = payload['systemsTraceAuditNumber']
 
         try:
             history.save_to_db()
