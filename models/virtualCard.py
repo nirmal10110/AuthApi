@@ -4,7 +4,7 @@ from db import db
 class VirtualCardModel(db.Model):
     __tablename__ = 'panDetails'
     id = db.Column(db.Integer, primary_key=True)
-    pan = db.Column(db.String, unique=True, nullable=False)
+    pan = db.Column(db.LargeBinary, unique=True, nullable=False)
     amount = db.Column(db.Integer, default=0)
     card_generated_time = db.Column(db.String, nullable=False)
     last_transact_time = db.Column(db.String)
