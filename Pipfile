@@ -24,7 +24,7 @@ python-dotenv = "*"
 Flask-Cors = "*"
 PyMySQL = "*"
 gunicorn = "*"
-
+psycopg2-binary = "*"
 
 
 [requires]
