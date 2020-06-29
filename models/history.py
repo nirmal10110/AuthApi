@@ -2,7 +2,7 @@ from db import db
 
 
 class HistoryModel(db.Model):
-    __tablename__ = 'history'
+    __tablename__ = 'user_history'
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     transaction_time = db.Column(db.String, nullable=False)
