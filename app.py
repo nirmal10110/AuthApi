@@ -12,9 +12,7 @@ from resources.history import History
 from resources.visaNet import VisaNet, Confirmation
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgres://cdlvssvkcndjxs" \
-                                        ":063d2145766954c50cc0ec5a2d915903ec37a2a8d8c3a553dff53c75211c8208@ec2-34-194" \
-                                        "-198-176.compute-1.amazonaws.com:5432 "
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgres://cdlvssvkcndjxs:063d2145766954c50cc0ec5a2d915903ec37a2a8d8c3a553dff53c75211c8208@ec2-34-194-198-176.compute-1.amazonaws.com:5432/d2t5dqf8i41ce4"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["JWT_BLACKLIST_ENABLED"] = True  # enable blacklist feature
@@ -26,9 +24,9 @@ app.secret_key = "visa"
 api = Api(app)
 
 
-# @app.before_first_request
-# def create_tables():
-#     db.create_all()
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 
 @app.errorhandler(ValidationError)
@@ -57,6 +55,6 @@ api.add_resource(VisaNet, "/visa_net/payment")
 api.add_resource(Confirmation, "/visa_net/confirm/payment")
 
 if __name__ == "__main__":
-    # db.init_app(app)
+    db.init_app(app)
     ma.init_app(app)
     app.run(port=5001, debug=True)

@@ -89,11 +89,11 @@ class VirtualCard(Resource):
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
-        pan = cipher.encrypt(pan)
+        # pan = cipher.encrypt(pan)
 
         while pan in PAN:
             pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
-            pan = cipher.encrypt(pan)
+            # pan = cipher.encrypt(pan)
 
         card_generated_time = datetime.fromtimestamp(time.time()).isoformat()
         virtual_card = VirtualCardModel(pan, card_generated_time, mobile_number)
@@ -169,8 +169,11 @@ class Payment(Resource):
             return {'msg': CARD_NOT_GENERATED}, 400
 
         wallet_response = wallet.get_amount(mobile_number, float(payload['amount']))
+        # print(pan)
+        print(PAN)
         pan = cipher.decrypt(virtual_card.pan)
-
+        # pan = virtual_card.pan
+        print(pan)
         if wallet_response is None:
             return {'msg': INTERNAL_SERVER_ERROR}, 500
 
@@ -186,7 +189,7 @@ class Payment(Resource):
         payload['localTransactionDateTime'] = last_transaction_time
 
         visa_response = MVisa.merchant_push_payments_post_payload(payload)
-
+        print(pan, visa_response.status_code, visa_response.json())
         if visa_response is None:
             wallet_response = wallet.send_amount(mobile_number, float(payload['amount']))
             return {"msg": ROLL_BACK}, 500
