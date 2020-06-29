@@ -43,6 +43,9 @@ class UserRegister(Resource):
         if UserModel.find_user_by_email(user.email):
             return {"msg": USER_ALREADY_EXISTS.format(user.email)}, 400
 
+        if UserModel.find_user_by_mobile_number(user.mobile_number):
+            return {"msg": USER_ALREADY_EXISTS.format(user.mobile_number)}, 400
+
         # user.password = cipher.encrypt(user.password)
         user.save_to_db()
         return {"msg": USER_CREATED.format(user.email)}, 201

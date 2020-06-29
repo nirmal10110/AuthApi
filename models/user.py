@@ -26,7 +26,8 @@ class UserModel(db.Model):
         return cls.query.filter_by(id=user_id).first()
 
     def send_otp(self, text):
-        return OTP.send_otp("+91" + self.mobile_number, text)
+#         return OTP.send_otp("+91" + self.mobile_number, text)
+        return None
 
     def save_to_db(self):
         db.session.add(self)

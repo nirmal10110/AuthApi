@@ -49,7 +49,7 @@ class VirtualCard(Resource):
             return {"msg": INTERNAL_SERVER_ERROR}, 500
 
         if not virtual_card:
-            return {"msg": ACCOUNT_NOT_YET_SYNCED}, 400
+            return {"msg": ACCOUNT_NOT_YET_SYNCED}, 404
 
         wallet_response = wallet.authorize(mobile_number)
 
@@ -89,11 +89,11 @@ class VirtualCard(Resource):
 
         pan_pref = '40'
         pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
-        # pan = cipher.encrypt(pan)
+        pan = cipher.encrypt(pan)
 
         while pan in PAN:
             pan = pan_pref + str(uuid.uuid4().int >> 32)[0:14]
-            # pan = cipher.encrypt(pan)
+            pan = cipher.encrypt(pan)
 
         card_generated_time = datetime.fromtimestamp(time.time()).isoformat()
         virtual_card = VirtualCardModel(pan, card_generated_time, mobile_number)

@@ -25,6 +25,7 @@ class VirtualCardModel(db.Model):
     def find_by_mobile_number(cls, mobile_number: str):
         return cls.query.filter_by(mobile_number=mobile_number).first()
 
+    
     def save_to_db(self) -> None:
         db.session.add(self)
         db.session.commit()
