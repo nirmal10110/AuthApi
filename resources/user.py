@@ -2,6 +2,7 @@ import traceback
 from marshmallow import INCLUDE, EXCLUDE
 from flask import request
 from flask_restful import Resource
+import datetime
 
 from models.user import UserModel
 from models.virtualCard import VirtualCardModel
@@ -95,7 +96,9 @@ class UserLogin(Resource):
             return {"msg": INVALID_PASSWORD}, 401
         elif not user.activated:
             return {"msg": USER_NOT_CONFIRMED.format(user.mobile_number)}, 400
-        access_token = create_access_token(identity=user.id, fresh=True)
+
+        expires = datetime.timedelta(days=1)
+        access_token = create_access_token(identity=user.id, expires_delta=expires, fresh=True)
         refresh_token = create_refresh_token(identity=user.id)
         return {"access_token": access_token, "refresh_token": refresh_token, "user": user_schema.dump(user)}, 200
 
