@@ -44,7 +44,7 @@ class VisaNet(Resource):
         return {"pan": pan}, 200
 
     @classmethod
-    def post(cls):
+    def put(cls):
         """
         payload = {
         "mobile_number":"*******",
@@ -58,21 +58,21 @@ class VisaNet(Resource):
 
         payload = request.get_json()
         history = None
-        # try:
-        #     history = HistoryModel.find_by_mobile_status(payload['mobile_number'], "Pending")
-        # except Exception as e:
-        #     print(e)
+        try:
+            history = HistoryModel.find_by_mobile_status(payload['mobile_number'], "Pending")
+        except Exception as e:
+            print(e)
 
-        # if history:
-        #     for hist in history:
-        #         hist.status = "Refunded"
-        #         wallet_response = wallet.send_amount(payload['mobile_number'], hist.amount)
+        if history:
+            for hist in history:
+                hist.status = "Refunded"
+                wallet_response = wallet.send_amount(payload['mobile_number'], hist.amount)
 
-        #         if wallet_response.status_code == 200:
-        #             try:
-        #                 hist.save_to_db()
-        #             except Exception as e:
-        #                 print(e)
+                if wallet_response.status_code == 200:
+                    try:
+                        hist.save_to_db()
+                    except Exception as e:
+                        print(e)
 
         try:
             virtual_card = VirtualCardModel.find_by_mobile_number(payload["mobile_number"])
