@@ -9,7 +9,7 @@ class UserModel(db.Model):
     email = db.Column(db.String(40), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     mobile_number = db.Column(db.String(20), unique=True, nullable=False)
-    activated = db.Column(db.Boolean, default=True)
+    activated = db.Column(db.Boolean, default=False)
     country_code = db.Column(db.String(40))
     # pan details relationship
 
